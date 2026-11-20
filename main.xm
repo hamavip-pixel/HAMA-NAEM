@@ -1,5 +1,6 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
+#import <QuartzCore/QuartzCore.h>
 
 static BOOL IsSupportedPubgBundle(NSString **versionLabelOut) {
     NSString *bid = [[NSBundle mainBundle] bundleIdentifier] ?: @"";
@@ -33,62 +34,84 @@ static BOOL IsSupportedPubgBundle(NSString **versionLabelOut) {
     return NO;
 }
 
-static void ShowHamaOverlay(void) {
-    UIWindow *targetWindow = nil;
-    for (UIWindowScene *scene in [UIApplication sharedApplication].connectedScenes) {
-        if (scene.activationState == UISceneActivationStateForegroundActive) {
-            for (UIWindow *w in scene.windows) {
-                if (w.isKeyWindow) {
-                    targetWindow = w;
-                    break;
+static UIWindow *GetActivePubgWindow(void) {
+    NSSet<UIScene *> *scenes = [UIApplication sharedApplication].connectedScenes;
+    for (UIScene *scene in scenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *ws = (UIWindowScene *)scene;
+            if (ws.activationState == UISceneActivationStateForegroundActive) {
+                for (UIWindow *win in ws.windows) {
+                    if (win.isKeyWindow) {
+                        return win;
+                    }
+                }
+                if (ws.windows.count > 0) {
+                    return ws.windows.firstObject;
                 }
             }
         }
-        if (targetWindow) break;
     }
-    if (!targetWindow) {
-        targetWindow = [UIApplication sharedApplication].keyWindow;
+    for (UIScene *scene in scenes) {
+        if ([scene isKindOfClass:[UIWindowScene class]]) {
+            UIWindowScene *ws = (UIWindowScene *)scene;
+            if (ws.windows.count > 0) {
+                return ws.windows.firstObject;
+            }
+        }
     }
-    if (!targetWindow) return;
+    return nil;
+}
 
-    NSInteger tagId = 987654;
-    if ([targetWindow viewWithTag:tagId]) return;
+static void RenderHamaBanner(void) {
+    UIWindow *win = GetActivePubgWindow();
+    if (!win) {
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1.5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            RenderHamaBanner();
+        });
+        return;
+    }
 
-    CGFloat boxWidth = 240.0;
-    CGFloat boxHeight = 52.0;
-    UIView *banner = [[UIView alloc] initWithFrame:CGRectMake((targetWindow.bounds.size.width - boxWidth) / 2.0, 36.0, boxWidth, boxHeight)];
-    banner.tag = tagId;
-    banner.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.55];
-    banner.layer.cornerRadius = 10.0;
-    banner.userInteractionEnabled = NO;
+    NSInteger bannerTag = 778899;
+    if ([win viewWithTag:bannerTag]) return;
 
-    UILabel *mainText = [[UILabel alloc] initWithFrame:CGRectMake(0, 4, boxWidth, 24)];
-    mainText.text = @"HAMA - IOS";
-    mainText.textAlignment = NSTextAlignmentCenter;
-    mainText.font = [UIFont boldSystemFontOfSize:18];
-    mainText.textColor = [UIColor whiteColor];
-    [banner addSubview:mainText];
+    CGFloat w = 240.0;
+    CGFloat h = 52.0;
+    CGFloat x = (win.bounds.size.width - w) / 2.0;
+    CGFloat y = 34.0;
 
-    UILabel *tgText = [[UILabel alloc] initWithFrame:CGRectMake(0, 26, boxWidth, 20)];
-    tgText.text = @"Telegram.hama_vip1";
-    tgText.textAlignment = NSTextAlignmentCenter;
-    tgText.font = [UIFont boldSystemFontOfSize:13];
-    tgText.textColor = [UIColor colorWithRed:1.0 green:0.12 blue:0.24 alpha:1.0]; // سووری ڕوون
-    [banner addSubview:tgText];
+    UIView *box = [[UIView alloc] initWithFrame:CGRectMake(x, y, w, h)];
+    box.tag = bannerTag;
+    box.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.55];
+    box.layer.cornerRadius = 10.0;
+    box.userInteractionEnabled = NO;
 
-    [targetWindow addSubview:banner];
+    UILabel *titleLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 4, w, 24)];
+    titleLbl.text = @"HAMA - IOS";
+    titleLbl.textAlignment = NSTextAlignmentCenter;
+    titleLbl.font = [UIFont boldSystemFontOfSize:18];
+    titleLbl.textColor = [UIColor whiteColor];
+    [box addSubview:titleLbl];
+
+    UILabel *tgLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 26, w, 20)];
+    tgLbl.text = @"Telegram.hama_vip1";
+    tgLbl.textAlignment = NSTextAlignmentCenter;
+    tgLbl.font = [UIFont boldSystemFontOfSize:13];
+    tgLbl.textColor = [UIColor colorWithRed:1.0 green:0.12 blue:0.24 alpha:1.0];
+    [box addSubview:tgLbl];
+
+    [win addSubview:box];
 }
 
 %ctor {
     @autoreleasepool {
-        NSString *verName = nil;
-        if (!IsSupportedPubgBundle(&verName)) {
+        NSString *ver = nil;
+        if (!IsSupportedPubgBundle(&ver)) {
             return;
         }
-        NSLog(@"[HAMA - IOS] Auto-detected PUBG version: %@", verName);
+        NSLog(@"[HAMA - IOS] PUBG Version: %@", ver);
 
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(2.0 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            ShowHamaOverlay();
+            RenderHamaBanner();
         });
     }
 }
