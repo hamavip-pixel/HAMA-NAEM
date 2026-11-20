@@ -14,18 +14,18 @@ jobs:
 
       - name: Setup Theos
         run: |
-          export THEOS=/opt/theos
-          git clone --recursive https://github.com/theos/theos.git $THEOS
-          mkdir -p $THEOS/sdks
+          export THEOS="$HOME/theos"
+          echo "THEOS=$THEOS" >> $GITHUB_ENV
+          git clone --recursive https://github.com/theos/theos.git "$THEOS"
+          mkdir -p "$THEOS/sdks"
           curl -sSL "https://github.com/theos/sdks/archive/master.tar.gz" | tar -xz -C /tmp
           SDK_DIR=$(find /tmp -maxdepth 2 -name "*.sdk" | head -n 1)
           if [ -n "$SDK_DIR" ]; then
-            mv "$SDK_DIR" $THEOS/sdks/
+            mv "$SDK_DIR" "$THEOS/sdks/"
           fi
 
       - name: Compile Dylib
         run: |
-          export THEOS=/opt/theos
           make package FINALPACKAGE=1
 
       - name: Upload Dylib Artifact
